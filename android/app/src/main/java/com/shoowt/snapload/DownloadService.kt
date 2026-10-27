@@ -33,6 +33,9 @@ class DownloadService : Service() {
         Thread {
             val wake = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SnapLoad:download")
             val directory = File(cacheDir, "download-${System.currentTimeMillis()}")
+            val link = intent?.getStringExtra("url").orEmpty()
+            val instagram = InstagramCookies.isInstagram(link)
+            var authenticated = false
             try {
                 wake.acquire(60 * 60 * 1000L)
                 status("Preparando o extrator no aparelho…")
@@ -40,13 +43,27 @@ class DownloadService : Service() {
                 FFmpeg.getInstance().init(this)
                 if (intent?.getBooleanExtra("update", false) == true) {
                     status("Atualizando extrator…")
-                    YoutubeDL.getInstance().updateYoutubeDL(this)
-                    status("Extrator atualizado.")
+                    updateExtractor()
+                    status("Extrator atualizado. Versão: ${YoutubeDL.getInstance().versionName(this) ?: "atual"}.")
                 } else {
-                    val link = intent?.getStringExtra("url") ?: error("Link ausente")
-                    val audio = intent.getBooleanExtra("audio", false)
+                    require(link.isNotBlank()) { "Link ausente" }
+                    val audio = intent?.getBooleanExtra("audio", false) == true
+                    val lastChecked = getSharedPreferences("extractor", MODE_PRIVATE).getLong("updated", 0)
+                    if (System.currentTimeMillis() - lastChecked > 24 * 60 * 60 * 1000L) {
+                        status("Verificando atualização do extrator…")
+                        try { updateExtractor() } catch (_: Exception) { /* The bundled extractor remains available offline. */ }
+                    }
                     directory.mkdirs()
                     val request = YoutubeDLRequest(link)
+                    if (instagram) {
+                        authenticated = InstagramSession.exists(this)
+                        val session = try { InstagramSession.materialize(this, directory) }
+                        catch (_: Exception) { throw IllegalStateException("Sessão do Instagram inválida. Conecte novamente.") }
+                        session?.let { (file, userAgent) ->
+                            request.addOption("--cookies", file.absolutePath)
+                            if (userAgent.isNotBlank()) request.addOption("--user-agent", userAgent)
+                        }
+                    }
                     request.addOption("--no-playlist")
                     request.addOption("--socket-timeout", "30")
                     request.addOption("--max-filesize", "1G")
@@ -72,7 +89,9 @@ class DownloadService : Service() {
                     status("Concluído! ${files.size} arquivo(s) em Downloads/SnapLoad.")
                 }
             } catch (e: Exception) {
-                status("Falha: ${e.message?.takeLast(650) ?: "Não foi possível baixar. Tente atualizar o extrator."}")
+                if (intent?.getBooleanExtra("update", false) == true) {
+                    status("Não foi possível atualizar o extrator. Confira a conexão e tente novamente; a versão instalada foi mantida.")
+                } else status(DownloadMessages.error(e.message.orEmpty(), instagram, authenticated))
             } finally {
                 directory.deleteRecursively()
                 if (wake.isHeld) wake.release()
@@ -82,6 +101,10 @@ class DownloadService : Service() {
             }
         }.start()
         return START_NOT_STICKY
+    }
+    private fun updateExtractor() {
+        YoutubeDL.getInstance().updateYoutubeDL(this)
+        getSharedPreferences("extractor", MODE_PRIVATE).edit().putLong("updated", System.currentTimeMillis()).apply()
     }
     override fun onTimeout(startId: Int, fgsType: Int) {
         Thread { YoutubeDL.getInstance().destroyProcessById("snapload") }.start()

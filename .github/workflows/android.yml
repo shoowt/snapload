@@ -31,7 +31,7 @@ jobs:
         env:
           SNAPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           SNAPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: gradle --no-daemon :app:assembleRelease :app:lintRelease
+        run: gradle --no-daemon :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease
       - name: Prepare download
         run: |
           mkdir -p dist

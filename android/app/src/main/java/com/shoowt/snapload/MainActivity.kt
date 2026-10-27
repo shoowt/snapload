@@ -1,6 +1,7 @@
 package com.shoowt.snapload
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Build
 import android.os.Handler
@@ -15,12 +16,18 @@ class MainActivity : Activity() {
     private lateinit var url: EditText
     private lateinit var status: TextView
     private lateinit var download: Button
+    private lateinit var sessionStatus: TextView
+    private val sessionButtons = mutableListOf<Button>()
+    private var importing = false
     private val handler = Handler(Looper.getMainLooper())
     private val refresh = object : Runnable {
         override fun run() {
             val prefs = getSharedPreferences("download", MODE_PRIVATE)
             status.text = prefs.getString("status", "Cole um link público para começar.")
-            download.isEnabled = !DownloadService.busy.get()
+            val idle = !DownloadService.busy.get() && !importing
+            download.isEnabled = idle
+            sessionButtons.forEach { it.isEnabled = idle }
+            sessionStatus.text = if (InstagramSession.exists(this@MainActivity)) "Instagram: sessão salva no aparelho" else "Instagram: sem sessão (acesso anônimo)"
             handler.postDelayed(this, 700)
         }
     }
@@ -67,15 +74,69 @@ class MainActivity : Activity() {
             }
         }
         status = label("", 16f)
+        sessionStatus = label("", 14f)
+        Button(this).apply {
+            text = "Conectar Instagram"; layout.addView(this); sessionButtons.add(this)
+            setOnClickListener { startActivity(Intent(this@MainActivity, InstagramLoginActivity::class.java)) }
+        }
+        Button(this).apply {
+            text = "Importar sessão do Instagram"; layout.addView(this); sessionButtons.add(this)
+            setOnClickListener {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Importar cookies do Instagram")
+                    .setMessage("Selecione um arquivo cookies.txt no formato Netscape, exportado de um navegador em que você entrou no Instagram. O app guarda apenas os cookies do Instagram, criptografados neste aparelho. Não compartilhe esse arquivo: ele permite acesso à sua conta. Remova a cópia exportada depois de importar.")
+                    .setNegativeButton("Cancelar", null)
+                    .setPositiveButton("Selecionar arquivo") { _, _ ->
+                        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE); type = "*/*"
+                        }, 20)
+                    }.show()
+            }
+        }
+        Button(this).apply {
+            text = "Remover sessão do Instagram"; layout.addView(this); sessionButtons.add(this)
+            setOnClickListener {
+                InstagramSession.clear(this@MainActivity)
+                getSharedPreferences("download", MODE_PRIVATE).edit().putString("status", "Sessão removida deste aparelho.").apply()
+            }
+        }
         label("Arquivos salvos em Downloads/SnapLoad. A extração e conversão são feitas neste aparelho; não dependem do site.", 14f)
         Button(this).apply {
-            text = "Atualizar extrator"; layout.addView(this)
+            text = "Atualizar extrator"; layout.addView(this); sessionButtons.add(this)
             setOnClickListener { startForegroundService(Intent(this@MainActivity, DownloadService::class.java).putExtra("update", true)) }
         }
         label("Use conteúdo público que você tem autorização para baixar. Algumas plataformas podem exigir login ou bloquear o acesso.", 13f)
         setContentView(scroll)
         if (intent.action == Intent.ACTION_SEND) url.setText(extractLink(intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()))
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 10)
+    }
+    @Deprecated("Uses the platform document picker without an extra UI framework")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 20 || resultCode != RESULT_OK || DownloadService.busy.get()) return
+        val uri = data?.data ?: return
+        importing = true
+        Thread {
+            val message = try {
+                val bytes = contentResolver.openInputStream(uri)?.use { stream ->
+                    val buffer = ByteArray(1024 * 1024 + 1)
+                    var count = 0
+                    while (count < buffer.size) {
+                        val read = stream.read(buffer, count, buffer.size - count)
+                        if (read < 0) break
+                        count += read
+                    }
+                    buffer.copyOf(count)
+                }
+                    ?: error("Não foi possível abrir o arquivo.")
+                require(bytes.size <= 1024 * 1024) { "Arquivo de sessão muito grande." }
+                InstagramSession.save(this, String(bytes, Charsets.UTF_8))
+                "Sessão do Instagram importada neste aparelho. Toque em Baixar para tentar novamente."
+            } catch (e: IllegalArgumentException) { e.message ?: "Arquivo de sessão inválido." }
+            catch (_: Exception) { "Não foi possível importar a sessão. Selecione cookies.txt no formato Netscape." }
+            getSharedPreferences("download", MODE_PRIVATE).edit().putString("status", message).apply()
+            runOnUiThread { importing = false; Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
+        }.start()
     }
     private fun extractLink(value: String) = Regex("https?://[^\\s]+").find(value)?.value ?: value.trim()
     override fun onResume() { super.onResume(); handler.post(refresh) }
