@@ -8,7 +8,7 @@ object DownloadMessages {
             else "O Instagram pediu login ou limitou o acesso anônimo. Toque em Conectar Instagram, entre na sua conta e tente novamente. Você também pode usar Importar sessão."
         }
         return when {
-            listOf("private", "unavailable", "not available", "not found", "removed", "deleted").any { it in message } -> "Vídeo indisponível ou sem acesso. Confira se o link abre na sua conta e se você tem autorização para baixar."
+            listOf("private video", "private account", "is private", "unavailable", "not available", "not found", "removed", "deleted").any { it in message } -> "Vídeo indisponível ou sem acesso. Confira se o link abre na sua conta e se você tem autorização para baixar."
             listOf("unsupported url", "invalid url").any { it in message } -> "Link não suportado. Compartilhe ou cole o endereço completo do vídeo."
             listOf("timed out", "network", "resolve", "connection", "unable to download").any { it in message } -> "Falha de conexão com a plataforma. Verifique a internet e tente novamente mais tarde."
             listOf("space", "enospc").any { it in message } -> "Falta espaço no aparelho. Libere armazenamento e tente novamente."

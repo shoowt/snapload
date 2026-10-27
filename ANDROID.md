@@ -12,7 +12,7 @@ Sites podem exigir autenticação ou bloquear downloads. O app não promete remo
 
 ## Instagram pede login ou limita o acesso
 
-Na versão 1.0.3, toque em **Conectar Instagram**, entre na página oficial `https://www.instagram.com` e toque em **Concluir conexão**. Depois volte ao link e toque em **Baixar**. Isso não exige compartilhar sua senha com o desenvolvedor nem com o Render: o login é enviado diretamente ao Instagram.
+Na versão 1.0.4, toque em **Conectar Instagram**, entre na página oficial `https://www.instagram.com` e toque em **Concluir conexão**. Depois volte ao link e toque em **Baixar**. Isso não exige compartilhar sua senha com o desenvolvedor nem com o Render: o login é enviado diretamente ao Instagram.
 
 Se o Instagram recusar o navegador de login, use **Importar sessão do Instagram** e selecione um arquivo `cookies.txt` no formato Netscape exportado de um navegador em que você já entrou na conta. Somente cookies do domínio Instagram são guardados. Não compartilhe esse arquivo e remova a cópia exportada depois da importação. Veja o [formato aceito pelo yt-dlp](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp).
 
