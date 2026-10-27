@@ -1,0 +1,14 @@
+services:
+  snapload:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: snapload_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+    volumes:
+      # Optional persistence or caching
+      - ./temp_downloads:/app/backend/temp_downloads

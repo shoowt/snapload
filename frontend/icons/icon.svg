@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#1E1B4B"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#6366F1" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGrad)" stroke="#334155" stroke-width="4"/>
+
+  <!-- Glowing subtle ring -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#neonGrad)" stroke-width="3" opacity="0.3"/>
+
+  <!-- Main Download Arrow & Tray -->
+  <g filter="url(#shadow)">
+    <!-- Arrow Head & Stem -->
+    <path d="M256 120 V290 M180 220 L256 296 L332 220" 
+          fill="none" 
+          stroke="url(#neonGrad)" 
+          stroke-width="36" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Bottom Tray -->
+    <path d="M140 330 V350 C140 372 158 390 180 390 H332 C354 390 372 372 372 350 V330" 
+          fill="none" 
+          stroke="url(#neonGrad)" 
+          stroke-width="36" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- Clean Sparkle / No Watermark Badge -->
+  <g transform="translate(330, 110)">
+    <circle cx="26" cy="26" r="32" fill="url(#glowGrad)"/>
+    <!-- Checkmark or Star in Badge -->
+    <path d="M16 26 L23 33 L36 18" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

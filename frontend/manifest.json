@@ -1,0 +1,34 @@
+{
+  "name": "SnapLoad - Download de Vídeos Sem Marca d'Água",
+  "short_name": "SnapLoad",
+  "description": "Baixe vídeos do TikTok, Instagram, YouTube, X e Facebook sem marca d'água direto na sua galeria.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "lang": "pt-BR",
+  "categories": ["utilities", "productivity", "multimedia"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Baixar Vídeo",
+      "url": "/",
+      "description": "Colar link e baixar vídeo sem marca d'água"
+    }
+  ]
+}
