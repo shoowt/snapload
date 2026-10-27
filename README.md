@@ -1,5 +1,8 @@
 # SnapLoad ⚡
 
+**Web:** https://snapload-web.onrender.com  
+**Android nativo:** [baixar APK nas Releases](https://github.com/shoowt/snapload/releases/latest). Executa yt-dlp e FFmpeg no celular, sem WebView e sem depender do Render. Requer Android 10+. Veja [ANDROID.md](ANDROID.md).
+
 > **Web App / PWA Mobile-First** para download de vídeos de redes sociais públicas (**TikTok, Instagram Reels, YouTube Shorts, X/Twitter e Facebook**) em alta qualidade e **sem marca d'água** direto na galeria do celular.
 
 ---

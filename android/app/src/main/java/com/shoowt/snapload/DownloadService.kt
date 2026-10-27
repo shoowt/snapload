@@ -61,7 +61,7 @@ class DownloadService : Service() {
                     }
                     status("Conectando à plataforma…")
                     var lastUpdate = 0L
-                    YoutubeDL.getInstance().execute(request, "snapload") { progress, _, _ ->
+                    YoutubeDL.getInstance().execute(request, "snapload", false) { progress, _, _ ->
                         val now = System.currentTimeMillis()
                         if (now - lastUpdate > 700) { status("Baixando: ${progress.toInt()}% — aguarde a conversão"); lastUpdate = now }
                     }
@@ -82,6 +82,13 @@ class DownloadService : Service() {
             }
         }.start()
         return START_NOT_STICKY
+    }
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        Thread { YoutubeDL.getInstance().destroyProcessById("snapload") }.start()
+        getSharedPreferences("download", MODE_PRIVATE).edit()
+            .putString("status", "Download interrompido pelo limite de execução do Android. Tente novamente.").apply()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
     private fun saveDownload(file: File) {
         val mime = when(file.extension.lowercase()) {
