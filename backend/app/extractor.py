@@ -215,13 +215,15 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
             vdata = None
             # HD can be unavailable while the provider prepares the video.
             # Retry once at standard quality instead of discarding a valid link.
-            for method, hd in (("GET", 1), ("POST", 0)):
+            for method, hd, host in (("GET", 1, "www.tikwm.com"),
+                                     ("POST", 0, "www.tikwm.com"),
+                                     ("GET", 0, "tikwm.com")):
                 if hd == 0:
                     await asyncio.sleep(1.1)
                 try:
                     params = {"url": url, "hd": hd}
                     resp = await client.request(
-                        method, "https://www.tikwm.com/api/",
+                        method, f"https://{host}/api/",
                         **({"params": params} if method == "GET" else {"data": params}),
                         headers={"Referer": "https://www.tikwm.com/"}
                     )
@@ -236,7 +238,7 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
                     logger.warning("TikTok fallback %s hd=%s rejected: code=%s message=%s",
                                    method, hd, data.get("code"), str(data.get("msg", ""))[:300])
                 except (httpx.HTTPError, RequestsError, ValueError) as exc:
-                    logger.warning("TikTok fallback %s hd=%s failed: %s", method, hd, exc)
+                    logger.warning("TikTok fallback %s %s hd=%s failed: %s", host, method, hd, exc)
             if vdata is None:
                 return None
 

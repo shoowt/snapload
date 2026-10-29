@@ -31,6 +31,7 @@ class TikTokFallbackTests(unittest.IsolatedAsyncioTestCase):
         result, _ = await self.run_responses([
             {"code": 0, "data": {"id": "123"}},
             {"code": 0, "data": {"id": "123"}},
+            {"code": 0, "data": {"id": "123"}},
         ])
         self.assertIsNone(result)
 
