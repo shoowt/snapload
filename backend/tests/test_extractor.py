@@ -11,7 +11,7 @@ class TikTokFallbackTests(unittest.IsolatedAsyncioTestCase):
         responses = [httpx.Response(200, json=p, request=httpx.Request(
             "GET", "https://www.tikwm.com/api/")) for p in payloads]
         request = AsyncMock(side_effect=responses)
-        with patch("backend.app.extractor.httpx.AsyncClient.request", request), patch(
+        with patch("backend.app.extractor.AsyncSession.request", request), patch(
             "backend.app.extractor.asyncio.sleep", new_callable=AsyncMock
         ):
             result = await extract_tiktok_fallback("https://www.tiktok.com/@user/video/123")

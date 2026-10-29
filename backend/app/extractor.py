@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any, List, Optional
 import httpx
 import yt_dlp
+from curl_cffi.requests import AsyncSession, RequestsError
 
 from .config import DEFAULT_USER_AGENT, PLATFORM_INFO
 from .sanitizers import sanitize_url, detect_platform
@@ -210,7 +211,7 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
     Extracts 100% clean, watermark-free HD stream directly from CDN.
     """
     try:
-        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
+        async with AsyncSession(timeout=12.0, impersonate="chrome") as client:
             vdata = None
             # HD can be unavailable while the provider prepares the video.
             # Retry once at standard quality instead of discarding a valid link.
@@ -222,8 +223,7 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
                     resp = await client.request(
                         method, "https://www.tikwm.com/api/",
                         **({"params": params} if method == "GET" else {"data": params}),
-                        headers={"User-Agent": DEFAULT_USER_AGENT,
-                                 "Referer": "https://www.tikwm.com/"}
+                        headers={"Referer": "https://www.tikwm.com/"}
                     )
                     resp.raise_for_status()
                     data = resp.json()
@@ -235,7 +235,7 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
                         break
                     logger.warning("TikTok fallback %s hd=%s rejected: code=%s message=%s",
                                    method, hd, data.get("code"), str(data.get("msg", ""))[:300])
-                except (httpx.HTTPError, ValueError) as exc:
+                except (httpx.HTTPError, RequestsError, ValueError) as exc:
                     logger.warning("TikTok fallback %s hd=%s failed: %s", method, hd, exc)
             if vdata is None:
                 return None
