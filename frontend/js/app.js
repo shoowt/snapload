@@ -176,6 +176,8 @@ submitBtn.addEventListener("click", () => {
 
 // Main Search & Extract Handler
 async function handleSearch() {
+  if (state.isLoading) return;
+
   const url = urlInput.value.trim();
   if (!url) {
     showToast("Por favor, cole um link de vídeo primeiro.", "warning");

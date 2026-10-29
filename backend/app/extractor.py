@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from typing import Dict, Any, List, Optional
 import httpx
 import yt_dlp
 
 from .config import DEFAULT_USER_AGENT, PLATFORM_INFO
 from .sanitizers import sanitize_url, detect_platform
+
+logger = logging.getLogger(__name__)
 
 # Try importing ImpersonateTarget for anti-bot bypass
 try:
@@ -208,18 +211,35 @@ async def extract_tiktok_fallback(url: str) -> Optional[Dict[str, Any]]:
     """
     try:
         async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
-            resp = await client.post(
-                "https://www.tikwm.com/api/",
-                data={"url": url, "hd": 1},
-                headers={"User-Agent": DEFAULT_USER_AGENT}
-            )
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            if data.get("code") != 0 or not data.get("data"):
+            vdata = None
+            # HD can be unavailable while the provider prepares the video.
+            # Retry once at standard quality instead of discarding a valid link.
+            for method, hd in (("GET", 1), ("POST", 0)):
+                if hd == 0:
+                    await asyncio.sleep(1.1)
+                try:
+                    params = {"url": url, "hd": hd}
+                    resp = await client.request(
+                        method, "https://www.tikwm.com/api/",
+                        **({"params": params} if method == "GET" else {"data": params}),
+                        headers={"User-Agent": DEFAULT_USER_AGENT,
+                                 "Referer": "https://www.tikwm.com/"}
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    candidate = data.get("data")
+                    if data.get("code") == 0 and isinstance(candidate, dict) and (
+                        candidate.get("hdplay") or candidate.get("play")
+                    ):
+                        vdata = candidate
+                        break
+                    logger.warning("TikTok fallback %s hd=%s rejected: code=%s message=%s",
+                                   method, hd, data.get("code"), str(data.get("msg", ""))[:300])
+                except (httpx.HTTPError, ValueError) as exc:
+                    logger.warning("TikTok fallback %s hd=%s failed: %s", method, hd, exc)
+            if vdata is None:
                 return None
 
-            vdata = data["data"]
             clean_video_url = vdata.get("hdplay") or vdata.get("play")
             music_url = vdata.get("music")
             author = vdata.get("author", {}).get("nickname") or vdata.get("author", {}).get("unique_id") or "TikToker"
@@ -355,14 +375,19 @@ async def extract_video_info(raw_url: str) -> Dict[str, Any]:
 
         # Parse error for user friendly feedback
         msg = str(ytdlp_err)
-        if "Private video" in msg or "private account" in msg.lower() or "login" in msg.lower():
+        lower_msg = msg.lower()
+        if any(marker in lower_msg for marker in ("429", "too many requests", "rate-limit", "rate limit")):
+            friendly_error = "A plataforma limitou temporariamente as requisições. Aguarde alguns minutos antes de tentar novamente."
+        elif any(marker in lower_msg for marker in ("bot", "blocked", "403", "forbidden", "challenge")):
+            friendly_error = "A plataforma bloqueou o acesso automático a este vídeo. Tentar novamente em instantes pode não resolver."
+        elif "status code 0" in lower_msg or "timed out" in lower_msg or "connection" in lower_msg:
+            friendly_error = "Não foi possível conectar à plataforma do vídeo. Verifique a conexão e tente novamente mais tarde."
+        elif "private video" in lower_msg or "private account" in lower_msg or "login" in lower_msg:
             friendly_error = "Este vídeo é de uma conta privada ou restrita. Apenas vídeos de perfis públicos podem ser baixados."
         elif "Video unavailable" in msg or "not found" in msg.lower() or "deleted" in msg.lower():
             friendly_error = "O vídeo não foi encontrado. Pode ter sido removido ou o link está incorreto."
         elif "Unsupported URL" in msg or "not a valid URL" in msg.lower():
             friendly_error = "Link não suportado ou inválido. Verifique o link e tente novamente."
-        elif "bot" in msg.lower() or "blocked" in msg.lower() or "rate-limit" in msg.lower() or "429" in msg or "status code 0" in msg.lower():
-            friendly_error = "A plataforma limitou temporariamente as requisições. Aguarde alguns instantes e tente novamente."
         else:
             friendly_error = "Não foi possível processar o vídeo. Verifique se o link é público e tente novamente."
 
